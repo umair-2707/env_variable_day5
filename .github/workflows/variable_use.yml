@@ -4,17 +4,12 @@ on:
 jobs:
   job-with-mysql-8_0:
     runs-on: ubuntu-20.04
-    env:
-      MYSQL_ROOT_PASSWORD: root_password
-      MYSQL_DATABASE: test_db
-      MYSQL_USER: user1
-      MYSQL_PASSWORD: user1_password
-      NEW_DATABASE: new_test_db
     services:
       db:
         image: mysql:8.0
         ports:
           - 3306:3306
+        environment: dev
         env:
           MYSQL_ROOT_PASSWORD: ${{ env.MYSQL_ROOT_PASSWORD }}
           MYSQL_DATABASE: ${{ env.MYSQL_DATABASE }}
@@ -28,6 +23,7 @@ jobs:
     steps:
       - name: Show Docker containers
         run: docker ps -a
+
       - name: Wait for MySQL to be ready
         run: |
           echo "Waiting for MySQL to be ready"
@@ -36,15 +32,18 @@ jobs:
             echo "MySQL is not ready yet... retrying in 2 seconds."
             sleep 2
           done
+
       - name: Create Database and Grant Full Permission to User1
         run: |
           mysql --protocol=tcp -h localhost -P 3306 -u root -p${{ env.MYSQL_ROOT_PASSWORD }} -e "CREATE DATABASE IF NOT EXISTS ${{ env.NEW_DATABASE }};"
           mysql --protocol=tcp -h localhost -P 3306 -u root -p${{ env.MYSQL_ROOT_PASSWORD }} -e "CREATE USER IF NOT EXISTS '${{ env.MYSQL_USER }}'@'%' IDENTIFIED BY '${{ env.MYSQL_PASSWORD }}';"
           mysql --protocol=tcp -h localhost -P 3306 -u root -p${{ env.MYSQL_ROOT_PASSWORD }} -e "GRANT ALL PRIVILEGES ON ${{ env.NEW_DATABASE }}.* TO '${{ env.MYSQL_USER }}'@'%'; FLUSH PRIVILEGES;"
+
       - name: Create table and insert data
         run: |
           mysql --protocol=tcp -h localhost -P 3306 -u ${{ env.MYSQL_USER }} -p${{ env.MYSQL_PASSWORD }} ${{ env.NEW_DATABASE }} -e "CREATE TABLE IF NOT EXISTS users (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(50));"
           mysql --protocol=tcp -h localhost -P 3306 -u ${{ env.MYSQL_USER }} -p${{ env.MYSQL_PASSWORD }} ${{ env.NEW_DATABASE }} -e "INSERT INTO users (name) VALUES ('Alice'), ('Bob');"
+
       - name: Query data
         run: |
           mysql --protocol=tcp -h localhost -P 3306 -u ${{ env.MYSQL_USER }} -p${{ env.MYSQL_PASSWORD }} ${{ env.NEW_DATABASE }} -e "SELECT * FROM users;"
