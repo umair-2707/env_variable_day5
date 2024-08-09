@@ -10,6 +10,7 @@ jobs:
         image: mysql:8.0
         ports:
           - 3306:3306
+        environment: dev
         env:
           MYSQL_ROOT_PASSWORD: ${{ env.MYSQL_ROOT_PASSWORD }}
           MYSQL_DATABASE: ${{ env.MYSQL_DATABASE }}
